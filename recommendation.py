@@ -52,55 +52,58 @@ def recommend_courses_db():
     recommended_courses = get_recommended_courses(job_id)
     return jsonify(recommended_courses)
 
-# 경로 2: /recommend
-@app.route('/recommend', methods=['POST'])
-def recommend_courses_csv():
+
+# 경로 2: /recommend/multiple
+@app.route('/recommend/multiple', methods=['POST'])
+def recommend_multiple_courses():
+    # 입력 데이터 받기
     data = request.get_json()
-    input_name = data.get('courseName', '').strip()
-    input_details = data.get('courseDetails', '').strip()
-    if not input_name or not input_details:
-        return jsonify({"error": "Invalid input. 'courseName' and 'courseDetails' must be non-empty."}), 400
+
+    # 입력 데이터 유효성 검사
+    if not isinstance(data, list) or len(data) == 0:
+        return jsonify({"error": "Invalid input. Provide a list of objects with 'courseName' and 'courseDetails'."}), 400
+
+
+    # 데이터 병합 (NaN 처리 포함)
     df['combined'] = df['courseName'].fillna('') + " " + df['courseDetails'].fillna('')
-    input_text = input_name + " " + input_details
+
+    # 결과를 저장할 리스트
+    all_recommendations = []
+
+    # TF-IDF 벡터화 객체 생성
     vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(df['combined'].tolist() + [input_text])
-    input_vector = tfidf_matrix[-1]
-    cosine_similarities = cosine_similarity(input_vector, tfidf_matrix[:-1]).flatten()
-    df['similarity'] = cosine_similarities
-    top_courses = df.sort_values(by='similarity', ascending=False).head(3)
-    result = top_courses[['courseName', 'courseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
-    return jsonify(result)
+    tfidf_matrix = vectorizer.fit_transform(df['combined'])
 
-# 경로 3: /recommend/random
-@app.route('/recommend/random', methods=['POST'])
-def recommend_random_courses_csv():
-    data = request.get_json()
-    input_name = data.get('courseName', '').strip()
-    input_details = data.get('courseDetails', '').strip()
+    # 입력 데이터 각각 처리
+    for item in data:
+        input_name = item.get('courseName', '').strip()
+        input_details = item.get('courseDetails', '').strip()
 
-    if not input_name or not input_details:
-        return jsonify({"error": "Invalid input. 'courseName' and 'courseDetails' must be non-empty."}), 400
+        if not input_name or not input_details:
+            all_recommendations.append({
+                "input": item,
+                "error": "Invalid input. 'courseName' and 'courseDetails' must be non-empty."
+            })
+            continue
 
-    # 데이터 병합
-    df['combined'] = df['courseName'].fillna('') + " " + df['courseDetails'].fillna('')
-    input_text = input_name + " " + input_details
+        input_text = input_name + " " + input_details
+        input_vector = vectorizer.transform([input_text])
+        cosine_similarities = cosine_similarity(input_vector, tfidf_matrix).flatten()
 
-    # TF-IDF 벡터화
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(df['combined'].tolist() + [input_text])
-    input_vector = tfidf_matrix[-1]
-    cosine_similarities = cosine_similarity(input_vector, tfidf_matrix[:-1]).flatten()
+        # 유사도 계산 및 상위 20개 추출
+        df['similarity'] = cosine_similarities
+        top_courses = df.sort_values(by='similarity', ascending=False).head(20)
 
-    # 유사도 계산 및 상위 20개 추출
-    df['similarity'] = cosine_similarities
-    top_courses = df.sort_values(by='similarity', ascending=False).head(20)
+        # 상위 20개 중 랜덤으로 3개 선택
+        if len(top_courses) >= 3:
+            random_courses = top_courses.sample(n=3)
+        else:
+            random_courses = top_courses
 
-    # 상위 20개 중 랜덤으로 3개 선택
-    random_courses = top_courses.sample(n=3)
-
-    # 결과 JSON 생성
-    result = random_courses[['courseName', 'courseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
-    return jsonify(result)
+        # 결과 추가
+        recommendations = random_courses[['courseName', 'courseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
+       
+    return jsonify(recommendations)
 
 # Flask 애플리케이션 실행
 if __name__ == '__main__':
