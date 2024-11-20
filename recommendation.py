@@ -73,7 +73,7 @@ def recommend_courses_csv():
 
 # 경로 3: /recommend/random
 @app.route('/recommend/random', methods=['POST'])
-def recommend_courses_csv():
+def recommend_random_courses_csv():
     data = request.get_json()
     input_name = data.get('courseName', '').strip()
     input_details = data.get('courseDetails', '').strip()
