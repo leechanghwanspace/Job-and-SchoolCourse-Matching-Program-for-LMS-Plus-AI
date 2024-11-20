@@ -6,8 +6,8 @@ def connect_to_db():
     # MySQL에 연결
     connection = mysql.connector.connect(
         host='127.0.0.1',  # MySQL 서버 호스트 주소
-        user='root',       # MySQL 사용자명
-        password='qwerqwer', # MySQL 비밀번호
+        user='newuser',       # MySQL 사용자명
+        password='qwer1234!@', # MySQL 비밀번호
         database='lms'       # 연결할 데이터베이스 이름
     )
     return connection
