@@ -10,8 +10,8 @@ app = Flask(__name__)
 # CSV 파일 처리
 try:
     df = pd.read_csv('courses.csv')
-    df.columns = ['courseName', 'courseDetails', 'courseURL']
-    df = df.dropna(subset=['courseName', 'courseDetails']).reset_index(drop=True)
+    df.columns = ['inflearnCourseName', 'inflearnCourseDetails', 'courseURL']
+    df = df.dropna(subset=['inflearnCourseName', 'inflearnCourseDetails']).reset_index(drop=True)
 except FileNotFoundError:
     raise Exception("courses.csv 파일을 찾을 수 없습니다. 경로를 확인하세요.")
 
@@ -52,7 +52,6 @@ def recommend_courses_db():
     recommended_courses = get_recommended_courses(job_id)
     return jsonify(recommended_courses)
 
-
 # 경로 2: /recommend/multiple
 @app.route('/recommend/multiple', methods=['POST'])
 def recommend_multiple_courses():
@@ -63,9 +62,8 @@ def recommend_multiple_courses():
     if not isinstance(data, list) or len(data) == 0:
         return jsonify({"error": "Invalid input. Provide a list of objects with 'courseName' and 'courseDetails'."}), 400
 
-
     # 데이터 병합 (NaN 처리 포함)
-    df['combined'] = df['courseName'].fillna('') + " " + df['courseDetails'].fillna('')
+    df['combined'] = df['inflearnCourseName'].fillna('') + " " + df['inflearnCourseDetails'].fillna('')
 
     # 결과를 저장할 리스트
     all_recommendations = []
@@ -86,6 +84,56 @@ def recommend_multiple_courses():
             })
             continue
 
+        # 입력 텍스트 벡터화 및 유사도 계산
+        input_text = input_name + " " + input_details
+        input_vector = vectorizer.transform([input_text])
+        cosine_similarities = cosine_similarity(input_vector, tfidf_matrix).flatten()
+
+        # 유사도 계산 및 상위 3개 추출
+        df['similarity'] = cosine_similarities
+        top_courses = df.sort_values(by='similarity', ascending=False).head(3)
+
+        # 결과 추가
+        recommendations = top_courses[['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
+        all_recommendations.append({
+            "input": item,
+            "recommendations": recommendations
+        })
+
+    return jsonify(all_recommendations)
+
+# 경로 3: /recommend/multiple/random
+@app.route('/recommend/multiple/random', methods=['POST'])
+def recommend_multiple_random_courses():
+    # 입력 데이터 받기
+    data = request.get_json()
+
+    # 입력 데이터 유효성 검사
+    if not isinstance(data, list) or len(data) == 0:
+        return jsonify({"error": "Invalid input. Provide a list of objects with 'CourseName' and 'CourseDetails'."}), 400
+
+    # 데이터 병합 (NaN 처리 포함)
+    df['combined'] = df['inflearnCourseName'].fillna('') + " " + df['inflearnCourseDetails'].fillna('')
+
+    # 결과를 저장할 리스트
+    all_recommendations = []
+
+    # TF-IDF 벡터화 객체 생성
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(df['combined'])
+
+    # 입력 데이터 각각 처리
+    for item in data:
+        input_name = item.get('CourseName', '').strip()
+        input_details = item.get('courseDetails', '').strip()
+
+        if not input_name or not input_details:
+            all_recommendations.append({
+                "input": item,
+                "error": "Invalid input. 'CourseName' and 'courseDetails' must be non-empty."
+            })
+            continue
+
         input_text = input_name + " " + input_details
         input_vector = vectorizer.transform([input_text])
         cosine_similarities = cosine_similarity(input_vector, tfidf_matrix).flatten()
@@ -96,15 +144,19 @@ def recommend_multiple_courses():
 
         # 상위 20개 중 랜덤으로 3개 선택
         if len(top_courses) >= 3:
-            random_courses = top_courses.sample(n=3)
+            # 인덱스 재설정 후 샘플 추출
+            random_courses = top_courses.reset_index(drop=True).sample(n=3, random_state=None)
         else:
-            random_courses = top_courses
+            random_courses = top_courses.reset_index(drop=True)
 
         # 결과 추가
-        recommendations = random_courses[['courseName', 'courseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
-       
-    return jsonify(recommendations)
+        recommendations = random_courses[['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
+        all_recommendations.append({
+            "input": item,
+            "recommendations": recommendations
+        })
 
-# Flask 애플리케이션 실행
+    return jsonify(all_recommendations)
+
 if __name__ == '__main__':
     app.run(debug=True)
