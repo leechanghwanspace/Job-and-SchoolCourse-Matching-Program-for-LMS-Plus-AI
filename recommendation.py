@@ -10,7 +10,7 @@ app = Flask(__name__)
 # CSV 파일 처리
 try:
     df = pd.read_csv('courses.csv')
-    df.columns = ['inflearnCourseName', 'inflearnCourseDetails', 'courseURL']
+    df.columns = ['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'imgURL']
     df = df.dropna(subset=['inflearnCourseName', 'inflearnCourseDetails']).reset_index(drop=True)
 except FileNotFoundError:
     raise Exception("courses.csv 파일을 찾을 수 없습니다. 경로를 확인하세요.")
@@ -94,7 +94,7 @@ def recommend_multiple_courses():
         top_courses = df.sort_values(by='similarity', ascending=False).head(3)
 
         # 결과 추가
-        recommendations = top_courses[['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
+        recommendations = top_courses[['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'similarity', 'imgURL']].to_dict(orient='records')
         all_recommendations.append({
             "input": item,
             "recommendations": recommendations
@@ -150,7 +150,7 @@ def recommend_multiple_random_courses():
             random_courses = top_courses.reset_index(drop=True)
 
         # 결과 추가
-        recommendations = random_courses[['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'similarity']].to_dict(orient='records')
+        recommendations = random_courses[['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'similarity', 'imgURL']].to_dict(orient='records')
         all_recommendations.append({
             "input": item,
             "recommendations": recommendations
