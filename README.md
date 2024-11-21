@@ -1,4 +1,4 @@
-# Job and SchoolCourse Similarity Extraction Program
+# Similarity Extraction Program
 
 이 프로젝트는 Flask 기반의 API로, 선택한 직업과 관련성이 높은 교과목과 이를 토대로 선택한 교과목을 바탕으로 인프런 강의를 추천해주는 프로그램입니다. MySQL 데이터베이스와 연결하여 직업 및 교과목 정보를 조회하고, 코사인 유사도를 사용하여 선택한 직업, 교과목, 인프런 강의들의 유사도를 계산합니다. 이후 상위 5개의 관련 교과목과 교과목을 기반으로한 인프런 강의를 반환합니다.
 
