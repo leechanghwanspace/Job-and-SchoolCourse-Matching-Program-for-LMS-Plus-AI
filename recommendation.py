@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # CSV 파일 처리
 try:
-    df = pd.read_csv('courses.csv')
+    df = pd.read_csv('./data/courses.csv')
     df.columns = ['inflearnCourseName', 'inflearnCourseDetails', 'courseURL', 'imgURL']
     df = df.dropna(subset=['inflearnCourseName', 'inflearnCourseDetails']).reset_index(drop=True)
 except FileNotFoundError:
