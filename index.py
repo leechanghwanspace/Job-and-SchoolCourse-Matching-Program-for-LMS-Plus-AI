@@ -124,13 +124,13 @@ def recommend_multiple_random_courses():
 
     # 입력 데이터 각각 처리
     for item in data:
-        input_name = item.get('CourseName', '').strip()
+        input_name = item.get('courseName', '').strip()
         input_details = item.get('courseDetails', '').strip()
 
         if not input_name or not input_details:
             all_recommendations.append({
                 "input": item,
-                "error": "Invalid input. 'CourseName' and 'courseDetails' must be non-empty."
+                "error": "Invalid input. 'courseName' and 'courseDetails' must be non-empty."
             })
             continue
 
